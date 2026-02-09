@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> MEDVOX | Consultation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+                <div class="logo-text">MEDECINE<span>IA</span></div>
+            </div>
+
+            <nav class="menu">
+                <a href="history.html">
+                    <i class="fa-solid fa-folder-open"></i> <span>Historique & Archives</span>
+                </a>
+            </nav>
+
+            <div class="user-card">
+                <div class="avatar"><i class="fa-solid fa-user-doctor"></i></div>
+                <div class="user-info">
+                    <h4>Dr. AKRAM</h4>
+                    <small>Médecin Généraliste</small>
+                </div>
+            </div>
+        </aside>
+
+        <main class="content">
+            <header class="top-header">
+                <div class="titles">
+                    <h1>Nouvelle Consultation</h1>
+                    <p>Assistant intelligent de transcription et génération de documents</p>
+                </div>
+                <div class="status-badge" id="connectionStatus">
+                    <i class="fa-solid fa-wifi"></i> Connecté
+                </div>
+            </header>
+
+            <div class="workspace">
+                <div class="panel recording-panel">
+                    <div class="panel-header">
+                        <h3><i class="fa-solid fa-wave-square"></i> Prise de voix</h3>
+                    </div>
+                    
+                    <div class="mic-container">
+                        <div class="mic-button" id="btnRecord">
+                            <i class="fa-solid fa-microphone" id="micIcon"></i>
+                        </div>
+                        <div class="pulse-ring"></div>
+                        <div class="pulse-ring delay"></div>
+                    </div>
+
+                    <p id="status" class="status-message">En attente de dictée...</p>
+                </div>
+
+                <div class="panel result-panel">
+                    <div class="panel-header">
+                        <h3><i class="fa-solid fa-file-medical"></i> Transcription & Analyse</h3>
+                        <div class="actions">
+                            <button id="btnClear" class="icon-btn" title="Effacer"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+
+                    <div id="aiAssistContainer" class="assist-panel" style="display:none; padding: 15px; margin-bottom: 10px; border-radius: 12px; background: rgba(255,255,255,0.5);">
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <div id="imcBadge" class="badge-assist"></div>
+                            <div id="diagList" class="badge-assist blue"></div>
+                        </div>
+                        <div id="alertBox" class="alert-banner" style="display:none;">
+                            <i class="fa-solid fa-triangle-exclamation"></i> 
+                            <strong>ALERTE :</strong> <span id="alertText"></span>
+                        </div>
+                    </div>
+
+                    <div class="editor-container">
+                        <textarea id="rawText" placeholder="La transcription apparaîtra ici en temps réel..."></textarea>
+                    </div>
+
+                    <div class="panel-footer">
+                        <button id="btnSaveDraft" class="btn-secondary">
+                            <i class="fa-solid fa-floppy-disk"></i> Sauvegarder Brouillon
+                        </button>
+
+                        <button id="btnProcess" class="btn-primary" disabled>
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            Générer le Document Officiel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="resultOverlay" class="overlay" style="display:none;">
+        <div class="modal glass-effect">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-check-circle"></i> Document Prêt</h2>
+                <button id="closeModal" class="close-icon"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <form action="generate_pdf.php" method="POST" target="_blank">
+                <div class="input-group">
+                    <label>Type de Document</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-tag"></i>
+                        <input type="text" name="doc_title" id="docTitle" readonly>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Contenu Médical Structuré</label>
+                    <div class="textarea-wrapper">
+                        <textarea name="doc_content" id="docContent" required></textarea>
+                    </div>
+                </div>
+                <button type="submit" class="btn-success">
+                    <i class="fa-solid fa-print"></i> Valider & Imprimer PDF
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

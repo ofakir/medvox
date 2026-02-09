@@ -1,0 +1,28 @@
+# 1. Fichiers Git
+.git           # Le cœur de Git lui-même (déjà ignoré par défaut).
+.gitignore     # On peut parfois ignorer le fichier de config lui-même (optionnel).
+.gitattributes # Paramètres Git pour les fins de ligne.
+
+# 2. Documentation
+README.md      # Si tu veux garder certains documents uniquement en local.
+*.md           # Ignore tous les fichiers Markdown (comptes-rendus, notes perso).
+
+# 3. Fichiers Docker
+# On ignore souvent les fichiers de build ou de config Docker sensibles.
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# 4. Fichiers système (Les "fichiers polluants")
+.DS_Store      # Fichiers invisibles créés par macOS.
+Thumbs.db      # Fichiers invisibles créés par Windows pour les miniatures d'images.
+.vscode        # Tes réglages personnels sur Visual Studio Code.
+.idea          # Tes réglages si tu utilises un éditeur JetBrains (comme PhpStorm).
+
+# 5. Logs (Traces d'erreurs)
+*.log          # Empêche d'envoyer les fichiers texte qui listent les erreurs PHP ou serveur.
+
+# 6. Fichiers temporaires
+tmp/           # Dossiers de stockage provisoire.
+temp/
+*.tmp          # Fichiers créés par le système qui n'ont aucune valeur pour le code.

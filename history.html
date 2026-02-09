@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historique & Archives - DocuVoice AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+
+    
+</head>
+<body>
+
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+                <div class="logo-text">MEDECINE<span>IA</span></div>
+            </div>
+
+            <nav class="menu">
+                <a href="index.html">
+                    <i class="fa-solid fa-plus"></i> <span>Nouvelle Consultation</span>
+                </a>
+            </nav>
+
+            <div class="user-card">
+                <div class="avatar"><i class="fa-solid fa-user-doctor"></i></div>
+                <div class="user-info">
+                    <h4>Dr. Jannane</h4>
+                    <small>Archives</small>
+                </div>
+            </div>
+        </aside>
+
+        <main class="content">
+            <header class="top-header">
+                <div class="titles">
+                    <h1>Dossiers Médicaux</h1>
+                    <p>Cliquez sur un dossier pour le modifier ou le compléter.</p>
+                </div>
+            </header>
+
+            <div class="controls-container">
+                <div class="search-wrapper">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="searchInput" placeholder="Rechercher un patient, une maladie...">
+                </div>
+                
+                <div class="filters">
+                    <button class="filter-btn active" data-filter="all">Tout</button>
+                    <button class="filter-btn" data-filter="brouillon">Brouillons</button>
+                    <button class="filter-btn" data-filter="ordonnance">Ordonnances</button>
+                    <button class="filter-btn" data-filter="certificat">Certificats</button>
+                </div>
+            </div>
+
+            <div id="gridContainer" class="grid-docs">
+                <div class="empty-zone"><i class="fa-solid fa-spinner fa-spin"></i><p>Chargement des dossiers...</p></div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const gridContainer = document.getElementById('gridContainer');
+        const searchInput = document.getElementById('searchInput');
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        let documentsData = [];
+
+        // 1. CHARGEMENT DES DONNÉES
+        window.onload = () => {
+            fetch('get_history_full.php')
+                .then(r => r.json())
+                .then(data => {
+                    documentsData = data;
+                    displayDocuments(documentsData);
+                })
+                .catch(err => {
+                    console.error(err);
+                    gridContainer.innerHTML = `<div class="empty-zone"><i class="fa-solid fa-triangle-exclamation"></i><p>Impossible de charger l'historique.</p></div>`;
+                });
+        };
+
+        // 2. AFFICHAGE DES CARTES
+        function displayDocuments(docs) {
+            gridContainer.innerHTML = '';
+            if (docs.length === 0) {
+                gridContainer.innerHTML = `<div class="empty-zone"><i class="fa-regular fa-folder-open"></i><p>Aucun dossier trouvé.</p></div>`;
+                return;
+            }
+
+            docs.forEach(doc => {
+                const titleLower = doc.titre.toLowerCase();
+                const isDraft = titleLower.includes('brouillon');
+                
+                let icon = 'fa-file-medical';
+                let colorClass = ''; 
+
+                if (isDraft) { 
+                    icon = 'fa-pen-ruler'; 
+                    colorClass = 'type-brouillon';
+                }
+                else if (titleLower.includes('ordonnance')) { icon = 'fa-pills'; colorClass = 'type-ordonnance'; }
+                else if (titleLower.includes('certificat')) { icon = 'fa-certificate'; colorClass = 'type-certificat'; }
+                else if (titleLower.includes('courrier') || titleLower.includes('lettre')) { icon = 'fa-paper-plane'; colorClass = 'type-courrier'; }
+
+                const dateObj = new Date(doc.date_creation);
+                const dateStr = dateObj.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+
+                const card = document.createElement('div');
+                card.className = 'card-doc';
+                
+                card.innerHTML = `
+                    ${isDraft ? '<div class="badge-draft">BROUILLON</div>' : ''}
+                    <div class="card-header-row">
+                        <div class="card-icon-box ${colorClass}"><i class="fa-solid ${icon}"></i></div>
+                        <div class="card-date">${dateStr}</div>
+                    </div>
+                    
+                    <div class="card-title">${doc.titre}</div>
+                    <div class="card-excerpt">${doc.contenu.substring(0, 110)}...</div>
+                `;
+
+                // CLIC : REDIRECTION VERS L'ACCUEIL POUR MODIFIER
+                card.onclick = () => {
+                    localStorage.setItem('editDoc', JSON.stringify({
+                        titre: doc.titre,
+                        contenu: doc.contenu
+                    }));
+                    window.location.href = 'index.html';
+                };
+
+                gridContainer.appendChild(card);
+            });
+        }
+        
+        // 3. FILTRES & RECHERCHE
+        function filterDocs() {
+            const term = searchInput.value.toLowerCase();
+            const cat = document.querySelector('.filter-btn.active').dataset.filter;
+            const filtered = documentsData.filter(d => {
+                const matchSearch = d.titre.toLowerCase().includes(term) || d.contenu.toLowerCase().includes(term);
+                let matchCat = true;
+                if(cat === 'brouillon') matchCat = d.titre.toLowerCase().includes('brouillon');
+                else if(cat !== 'all') matchCat = d.titre.toLowerCase().includes(cat) && !d.titre.toLowerCase().includes('brouillon');
+                return matchSearch && matchCat;
+            });
+            displayDocuments(filtered);
+        }
+
+        searchInput.addEventListener('input', filterDocs);
+        
+        filterBtns.forEach(b => b.onclick = () => { 
+            filterBtns.forEach(x => x.classList.remove('active')); 
+            b.classList.add('active'); 
+            filterDocs(); 
+        });
+    </script>
+</body>
+</html>
