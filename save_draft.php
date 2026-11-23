@@ -17,8 +17,8 @@ try {
     // On l'appelle "Brouillon" pour le reconnaître dans l'historique
     $titre = "Brouillon (Non traité)";
     
-    $stmt = $pdo->prepare("INSERT INTO documents (titre, contenu, date_creation) VALUES (?, ?, NOW())");
-    $stmt->execute([$titre, $texte]);
+    $stmt = $pdo->prepare("INSERT INTO documents (titre, contenu, date_creation) VALUES (?, ?, ?)");
+    $stmt->execute([$titre, $texte, date('Y-m-d H:i:s')]);
     
     echo json_encode(["success" => true, "message" => "Brouillon sauvegardé !"]);
 

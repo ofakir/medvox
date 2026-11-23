@@ -2,8 +2,9 @@
 // Fichier de test pour vérifier la clé API Gemini
 header("Content-Type: text/html; charset=UTF-8");
 
-// ⚠️ Colle ta clé API Gemini ici
-$apiKey = "VOTRE_CLE_API_GEMINI_ICI";
+require_once __DIR__ . '/env.php';
+// Clé lue depuis .env ou les variables du serveur (jamais dans le code)
+$apiKey = env('GEMINI_API_KEY', '');
 
 // URL de l'API Gemini
 $url = "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=" . $apiKey;

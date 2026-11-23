@@ -68,12 +68,15 @@
         const filterBtns = document.querySelectorAll('.filter-btn');
         let documentsData = [];
 
+        // Échappe le HTML pour éviter l'injection de code dans l'historique
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
         // 1. CHARGEMENT DES DONNÉES
         window.onload = () => {
             fetch('get_history_full.php')
                 .then(r => r.json())
                 .then(data => {
-                    documentsData = data;
+                    documentsData = Array.isArray(data) ? data : [];
                     displayDocuments(documentsData);
                 })
                 .catch(err => {
@@ -118,8 +121,8 @@
                         <div class="card-date">${dateStr}</div>
                     </div>
                     
-                    <div class="card-title">${doc.titre}</div>
-                    <div class="card-excerpt">${doc.contenu.substring(0, 110)}...</div>
+                    <div class="card-title">${esc(doc.titre)}</div>
+                    <div class="card-excerpt">${esc(doc.contenu.substring(0, 110))}...</div>
                 `;
 
                 // CLIC : REDIRECTION VERS L'ACCUEIL POUR MODIFIER

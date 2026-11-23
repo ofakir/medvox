@@ -12,8 +12,20 @@ if (empty($texte)) {
     exit;
 }
 
-// 2. TA CLÉ API GROQ (Colle ta clé API ici)
-$apiKey = $_ENV['GROQ_API_KEY'] ?? 'your_groq_api_key_here';
+// Limite de taille pour éviter les abus sur la démo publique
+if (mb_strlen($texte) > 6000) {
+    echo json_encode(["error" => "Texte trop long (6000 caractères maximum)."]);
+    exit;
+}
+
+// 2. Clé API Groq : lue depuis .env ou les variables du serveur (jamais dans le code)
+require_once __DIR__ . '/env.php';
+$apiKey = env('GROQ_API_KEY');
+if (!$apiKey) {
+    http_response_code(500);
+    echo json_encode(["error" => "Clé API Groq manquante (GROQ_API_KEY)."]);
+    exit;
+}
 
 // 3. Configuration pour GROQ
 $url = "https://api.groq.com/openai/v1/chat/completions";
@@ -52,9 +64,6 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, [
     "Authorization: Bearer " . $apiKey
 ]);
 
-// Désactivation SSL pour localhost (évite les erreurs de certificat sur XAMPP/WAMP)
-curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 
 $response = curl_exec($ch);
 

@@ -26,3 +26,6 @@ Thumbs.db      # Fichiers invisibles créés par Windows pour les miniatures d'i
 tmp/           # Dossiers de stockage provisoire.
 temp/
 *.tmp          # Fichiers créés par le système qui n'ont aucune valeur pour le code.
+# 7. Secrets et données locales (ne jamais les mettre dans l image)
+.env
+data/

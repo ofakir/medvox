@@ -1,8 +1,9 @@
 <?php
 // Fichier : check_models.php
 header("Content-Type: text/html; charset=UTF-8");
+require_once __DIR__ . '/env.php';
 
-$apiKey = "AIzaSyCQasXWnFJP_F6QTe_2RF9pXx9Sg-_PT7E"; // Votre clé
+$apiKey = env('GEMINI_API_KEY', ''); // Défini dans .env ou sur le serveur
 
 $url = "https://generativelanguage.googleapis.com/v1beta/models?key=" . $apiKey;
 

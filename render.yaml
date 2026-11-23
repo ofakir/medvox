@@ -1,0 +1,11 @@
+# Déploiement en un clic sur Render (https://render.com) — plan gratuit.
+# Render > New > Blueprint > choisis ce dépôt, puis renseigne GROQ_API_KEY.
+services:
+  - type: web
+    name: medvox
+    runtime: docker
+    plan: free
+    healthCheckPath: /index.html
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false # La valeur est saisie dans le tableau de bord Render, jamais dans le code

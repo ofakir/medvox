@@ -40,7 +40,13 @@ RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html
 # Donne les droits d'accès au serveur Apache pour lire et exécuter les fichiers sans erreur "403 Forbidden".
 
-# 10. Exposition et Lancement
+# 10. Dossier de la base SQLite (utilisée quand aucun MySQL n'est configuré)
+RUN mkdir -p /var/www/html/data && chown -R www-data:www-data /var/www/html/data
+
+# 11. Exposition et Lancement
+# Les hébergeurs (Render, Railway...) imposent le port via la variable PORT : Apache s'y adapte.
+ENV PORT=80
 EXPOSE 80
-CMD ["apache2-foreground"]
-# Ouvre le port 80 pour le trafic Web et lance le serveur Apache automatiquement au démarrage.
+CMD sed -i "s/^Listen .*/Listen ${PORT}/" /etc/apache2/ports.conf \
+ && sed -i "s/<VirtualHost \*:[0-9]*>/<VirtualHost *:${PORT}>/" /etc/apache2/sites-available/000-default.conf \
+ && apache2-foreground

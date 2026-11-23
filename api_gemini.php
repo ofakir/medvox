@@ -9,7 +9,8 @@ if (!$input || empty($input['texte'])) {
 }
 
 $texte = $input['texte'];
-$apiKey = "TA_CLE_API_GEMINI_ICI"; // ⚠️ REMPLACE CECI
+require_once __DIR__ . '/env.php';
+$apiKey = env('GEMINI_API_KEY', ''); // Défini dans .env ou sur le serveur
 
 // 2. Définition des types de documents possibles
 $docTypes = "Ordonnance, Certificat médical, Arrêt de travail, Compte rendu, Demande d'analyses, Demande d'examens (Radio/IRM), Lettre d'orientation, Certificat d'aptitude, Conseils médicaux, Régime alimentaire";

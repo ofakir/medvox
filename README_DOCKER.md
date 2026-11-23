@@ -7,6 +7,14 @@
 
 ## 🚀 Démarrage rapide
 
+### 0. Configurer la clé API
+
+```bash
+cp .env.example .env
+```
+
+Puis colle ta clé Groq dans `GROQ_API_KEY` (le fichier `.env` n'est jamais envoyé sur GitHub).
+
 ### 1. Construire et démarrer les conteneurs
 
 ```bash
@@ -42,19 +50,8 @@ Modifie le fichier `docker-compose.yml` pour changer :
 
 ### Connexion à la base de données
 
-Pour utiliser Docker, remplace dans tes fichiers PHP :
-```php
-// Remplace
-include 'db.php';
-// Par
-include 'db.docker.php';
-```
-
-Ou renomme directement les fichiers :
-```bash
-mv db.php db.local.php
-mv db.docker.php db.php
-```
+Rien à changer : `db.php` lit automatiquement `DB_HOST`, `DB_NAME`, `DB_USER` et `DB_PASSWORD`
+(définis dans `docker-compose.yml`). Sans `DB_HOST`, l'application utilise SQLite.
 
 ## 📝 Commandes utiles
 

@@ -9,6 +9,8 @@ services:
       - "8080:80" # Redirige le port 8080 de ton PC vers le port 80 du conteneur.
     volumes:
       - .:/var/www/html # Synchronise ton code local avec le conteneur (les modifs sont instantanées).
+    env_file:
+      - .env # Contient GROQ_API_KEY (copie .env.example en .env). Jamais commité.
     environment: # Variables de configuration pour la connexion à la base de données.
       - DB_HOST=db # Le serveur de base de données est le service nommé 'db'.
       - DB_NAME=cabinet_medical # Nom de la base de données médicale.

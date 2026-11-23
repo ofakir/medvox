@@ -39,6 +39,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $titre = $_POST['doc_title'] ?? 'DOCUMENT';
     $contenu = $_POST['doc_content'] ?? '';
 
+    // Archive le document dans l'historique (sans bloquer le PDF si la base est indisponible)
+    if (trim($contenu) !== '') {
+        define('DB_SOFT_FAIL', true);
+        require_once __DIR__ . '/db.php';
+        if ($pdo) {
+            try {
+                $check = $pdo->prepare("SELECT COUNT(*) FROM documents WHERE titre = ? AND contenu = ?");
+                $check->execute([$titre, $contenu]);
+                if ((int) $check->fetchColumn() === 0) {
+                    $stmt = $pdo->prepare("INSERT INTO documents (titre, contenu, date_creation) VALUES (?, ?, ?)");
+                    $stmt->execute([$titre, $contenu, date('Y-m-d H:i:s')]);
+                }
+            } catch (Exception $e) {
+                error_log('MedVox history error: ' . $e->getMessage());
+            }
+        }
+    }
+
     $pdf = new MedicalPDF();
     $pdf->AddPage();
     

@@ -3,6 +3,15 @@ CREATE DATABASE IF NOT EXISTS cabinet_medical CHARACTER SET utf8mb4 COLLATE utf8
 
 USE cabinet_medical;
 
+-- Table utilisée par l'application (brouillons + documents générés)
+CREATE TABLE IF NOT EXISTS documents (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    titre VARCHAR(255) NOT NULL,
+    contenu TEXT NOT NULL,
+    date_creation DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_date (date_creation)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Table pour stocker l'historique des consultations
 CREATE TABLE IF NOT EXISTS historique (
     id INT AUTO_INCREMENT PRIMARY KEY,
