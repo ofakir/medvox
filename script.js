@@ -107,13 +107,62 @@ if (!SpeechRecognition) {
         }
     }
 
+    // --- Indicateur de niveau du micro + diagnostic ---
+    const levelBar = document.getElementById('micLevelBar');
+    let meterStream = null, audioCtx = null, meterRaf = null;
+    let peakLevel = 0, gotResult = false, watchdog = null;
+
+    function startMeter(stream) {
+        meterStream = stream;
+        peakLevel = 0;
+        try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 512;
+            audioCtx.createMediaStreamSource(stream).connect(analyser);
+            const data = new Uint8Array(analyser.fftSize);
+            const tick = () => {
+                analyser.getByteTimeDomainData(data);
+                let sum = 0;
+                for (let i = 0; i < data.length; i++) { const v = (data[i] - 128) / 128; sum += v * v; }
+                const level = Math.min(1, Math.sqrt(sum / data.length) * 4);
+                peakLevel = Math.max(peakLevel, level);
+                if (levelBar) levelBar.style.width = Math.round(level * 100) + '%';
+                meterRaf = requestAnimationFrame(tick);
+            };
+            tick();
+        } catch (e) { /* l'indicateur est facultatif */ }
+    }
+
+    function stopMeter() {
+        cancelAnimationFrame(meterRaf);
+        if (meterStream) meterStream.getTracks().forEach(t => t.stop());
+        if (audioCtx) audioCtx.close().catch(() => {});
+        meterStream = null; audioCtx = null;
+        if (levelBar) levelBar.style.width = '0%';
+        clearTimeout(watchdog);
+    }
+
+    function armWatchdog() {
+        clearTimeout(watchdog);
+        gotResult = false;
+        watchdog = setTimeout(() => {
+            if (!wantRecording || gotResult) return;
+            if (peakLevel < 0.08) {
+                showError("Le micro ne capte aucun son. Dans Chrome, ouvrez chrome://settings/content/microphone et choisissez le bon micro (et vérifiez qu'il n'est pas coupé dans Windows), puis réessayez.");
+            } else {
+                showError("Le micro capte votre voix mais le service de dictée de Chrome ne répond pas. Vérifiez la langue choisie et désactivez la traduction automatique de la page, ou testez la dictée sur https://www.google.com/intl/fr/chrome/demos/speech.html");
+            }
+        }, 8000);
+    }
+
     async function begin() {
         fatalError = false;
         // Demande explicite du micro : affiche la fenêtre d'autorisation et détecte un refus.
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                stream.getTracks().forEach(t => t.stop());
+                startMeter(stream);
             } catch (e) {
                 const code = e && e.name === 'NotFoundError' ? 'audio-capture' : 'not-allowed';
                 showError(ERROR_MESSAGES[code]);
@@ -123,11 +172,13 @@ if (!SpeechRecognition) {
         committedText = rawText.value ? rawText.value.replace(/\s*$/, ' ') : '';
         wantRecording = true;
         startAnimation();
+        armWatchdog();
         startListening();
     }
 
     function end() {
         wantRecording = false;
+        stopMeter();
         recognition.stop();
         rawText.value = committedText.trim() ? committedText : rawText.value;
         stopAnimation();
@@ -148,6 +199,8 @@ if (!SpeechRecognition) {
     recognition.onstart = () => { isListening = true; };
 
     recognition.onresult = (event) => {
+        gotResult = true;
+        clearTimeout(watchdog);
         let interim = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
             const transcript = event.results[i][0].transcript;
@@ -168,6 +221,7 @@ if (!SpeechRecognition) {
         if (ERROR_MESSAGES[e.error]) {
             fatalError = true;
             wantRecording = false;
+            stopMeter();
             stopAnimation(null);
             showError(ERROR_MESSAGES[e.error]);
         } else {
