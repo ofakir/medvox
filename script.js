@@ -36,74 +36,162 @@ window.onload = () => {
     }
 };
 
-// --- 2. RECONNAISSANCE VOCALE (CORRIGÉE POUR ÉVITER LES RÉPÉTITIONS) ---
+// --- 2. RECONNAISSANCE VOCALE ---
+// Fonctionne avec Google Chrome et Microsoft Edge (ordinateur et Android).
+// Firefox, Brave et Safari ne fournissent pas (ou mal) la reconnaissance vocale.
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const langSelect = document.getElementById('langSelect');
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+function setStatus(message, color) {
+    status.innerText = message;
+    status.style.color = color || "#95A5A6";
+}
+
+function showError(message) {
+    status.innerHTML = '';
+    const span = document.createElement('span');
+    span.style.color = '#E74C3C';
+    span.textContent = message;
+    status.appendChild(span);
+}
+
+const ERROR_MESSAGES = {
+    'not-allowed': "Micro bloqué. Cliquez sur l'icône 🔒 à gauche de l'adresse du site, autorisez le micro, puis réessayez.",
+    'service-not-allowed': "La reconnaissance vocale est bloquée par ce navigateur. Utilisez Google Chrome ou Microsoft Edge.",
+    'audio-capture': "Aucun micro détecté. Branchez un micro ou vérifiez les réglages de votre appareil.",
+    'network': "Service de reconnaissance vocale injoignable. Utilisez Google Chrome ou Microsoft Edge (Brave et Opera ne sont pas compatibles) et vérifiez votre connexion.",
+    'language-not-supported': "Langue non prise en charge par ce navigateur. Choisissez une autre langue.",
+};
 
 if (!SpeechRecognition) {
-    status.innerHTML = "<span style='color:red'>Navigateur non supporté.</span>";
+    showError("Dictée vocale non disponible dans ce navigateur. Ouvrez MedVox dans Google Chrome ou Microsoft Edge (ou tapez le texte directement).");
+    btnRecord.style.opacity = '0.4';
+    btnRecord.style.cursor = 'not-allowed';
 } else {
+    if (navigator.brave) {
+        showError("Brave bloque la dictée vocale. Ouvrez MedVox dans Google Chrome ou Microsoft Edge.");
+    }
+
     const recognition = new SpeechRecognition();
-    recognition.lang = 'fr-FR';
-    recognition.continuous = true; 
+    // Sur mobile, le mode continu répète les mots : on écoute phrase par phrase et on relance.
+    recognition.continuous = !isMobile;
     recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
 
-    let isRecording = false;
-
-    btnRecord.onclick = () => {
-        if (isRecording) {
-            recognition.stop();
-            stopAnimation();
-        } else {
-            recognition.start();
-            startAnimation();
-        }
-    };
+    let wantRecording = false;   // l'utilisateur veut dicter
+    let isListening = false;     // le navigateur écoute réellement
+    let committedText = '';      // texte déjà validé dans la zone
+    let fatalError = false;
 
     function startAnimation() {
-        isRecording = true;
         micContainer.classList.add('recording');
         micIcon.classList.replace('fa-microphone', 'fa-stop');
-        status.innerText = "Écoute active...";
-        status.style.color = "#E74C3C";
+        setStatus("Écoute active... parlez maintenant.", "#E74C3C");
         btnProcess.disabled = true;
     }
 
-    function stopAnimation() {
-        isRecording = false;
+    function stopAnimation(message) {
         micContainer.classList.remove('recording');
         micIcon.classList.replace('fa-stop', 'fa-microphone');
-        status.innerText = "Pause. Cliquez pour reprendre.";
-        status.style.color = "#95A5A6";
-        btnProcess.disabled = false;
+        if (message !== null) setStatus(message || "Pause. Cliquez pour reprendre.");
+        btnProcess.disabled = rawText.value.trim() === '';
     }
 
-    recognition.onresult = (event) => {
-        let finalTranscript = '';
-        let interimTranscript = '';
+    function startListening() {
+        recognition.lang = (langSelect && langSelect.value) || 'fr-FR';
+        try {
+            recognition.start();
+        } catch (e) {
+            // Déjà démarré : on ignore
+        }
+    }
 
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-                finalTranscript += event.results[i][0].transcript;
-            } else {
-                interimTranscript += event.results[i][0].transcript;
+    async function begin() {
+        fatalError = false;
+        // Demande explicite du micro : affiche la fenêtre d'autorisation et détecte un refus.
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(t => t.stop());
+            } catch (e) {
+                const code = e && e.name === 'NotFoundError' ? 'audio-capture' : 'not-allowed';
+                showError(ERROR_MESSAGES[code]);
+                return;
             }
         }
+        committedText = rawText.value ? rawText.value.replace(/\s*$/, ' ') : '';
+        wantRecording = true;
+        startAnimation();
+        startListening();
+    }
 
-        // On n'ajoute que le texte finalisé pour éviter la répétition infinie
-        if (finalTranscript !== '') {
-            rawText.value += finalTranscript + ' ';
-            // Auto-scroll vers le bas
-            rawText.scrollTop = rawText.scrollHeight;
+    function end() {
+        wantRecording = false;
+        recognition.stop();
+        rawText.value = committedText.trim() ? committedText : rawText.value;
+        stopAnimation();
+    }
+
+    btnRecord.onclick = () => {
+        if (wantRecording) end();
+        else begin();
+    };
+
+    if (langSelect) {
+        langSelect.onchange = () => {
+            // Changement de langue pendant la dictée : on relance avec la nouvelle langue.
+            if (wantRecording) recognition.stop();
+        };
+    }
+
+    recognition.onstart = () => { isListening = true; };
+
+    recognition.onresult = (event) => {
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                committedText += transcript.trim() + ' ';
+            } else {
+                interim += transcript;
+            }
         }
+        // Affiche le texte en direct dans la zone (le texte provisoire apparaît à la suite)
+        rawText.value = committedText + interim;
+        rawText.scrollTop = rawText.scrollHeight;
+        setStatus(interim ? "En cours : " + interim : "Écoute active... parlez maintenant.", "#E74C3C");
+    };
 
-        // Feedback visuel pour le texte en cours
-        if (interimTranscript !== '') {
-            status.innerText = "En cours : " + interimTranscript;
+    recognition.onerror = (e) => {
+        if (e.error === 'no-speech' || e.error === 'aborted') return; // silence : on relance dans onend
+        if (ERROR_MESSAGES[e.error]) {
+            fatalError = true;
+            wantRecording = false;
+            stopAnimation(null);
+            showError(ERROR_MESSAGES[e.error]);
+        } else {
+            setStatus("Erreur : " + e.error, "#E74C3C");
         }
     };
-    
-    recognition.onerror = (e) => { stopAnimation(); status.innerText = "Erreur: " + e.error; };
+
+    recognition.onend = () => {
+        isListening = false;
+        if (wantRecording && !fatalError) {
+            // Le navigateur coupe après un silence : on relance automatiquement.
+            rawText.value = committedText;
+            setTimeout(startListening, 150);
+        } else if (!fatalError) {
+            rawText.value = committedText.trim() ? committedText : rawText.value;
+            stopAnimation();
+        }
+    };
 }
+
+// Le texte peut aussi être tapé à la main
+rawText.addEventListener('input', () => {
+    btnProcess.disabled = rawText.value.trim() === '';
+});
 
 // --- 3. BOUTONS ACTIONS ---
 
